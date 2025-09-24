@@ -1,0 +1,11 @@
+# gpio and communication
+gpiozero
+Rpi.GPIO
+pyserial
+# camera communication
+picamera2
+libcamera
+# light control
+rpi_hardware_pwm
+# motor control
+PyTmcStepper
