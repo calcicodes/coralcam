@@ -204,14 +204,6 @@ class CameraWidget(QWidget):
     def update_frame(self, frame):
         if frame is not None:
             try:
-                # Handle different frame formats
-                if len(frame.shape) == 2:
-                    # Convert grayscale to RGB
-                    frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
-                elif len(frame.shape) == 3 and frame.shape[2] != 3:
-                    print(f"Unexpected number of channels: {frame.shape[2]}")
-                    return
-                
                 # Rotate 90 degrees
                 frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 
