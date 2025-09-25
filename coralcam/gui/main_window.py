@@ -227,6 +227,71 @@ class CameraWidget(QWidget):
         
         right_layout.addWidget(controls_group)
         
+        # Image Enhancement controls
+        enhancement_group = QGroupBox("Image Enhancement")
+        enhancement_layout = QGridLayout(enhancement_group)
+        
+        # Color Limits (Levels)
+        enhancement_layout.addWidget(QLabel("Lower Limit:"), 0, 0)
+        self.lower_limit_spin = QSpinBox()
+        self.lower_limit_spin.setRange(0, 254)
+        self.lower_limit_spin.setValue(0)
+        self.lower_limit_spin.valueChanged.connect(self.on_enhancement_changed)
+        enhancement_layout.addWidget(self.lower_limit_spin, 0, 1)
+        
+        enhancement_layout.addWidget(QLabel("Upper Limit:"), 1, 0)
+        self.upper_limit_spin = QSpinBox()
+        self.upper_limit_spin.setRange(1, 255)
+        self.upper_limit_spin.setValue(255)
+        self.upper_limit_spin.valueChanged.connect(self.on_enhancement_changed)
+        enhancement_layout.addWidget(self.upper_limit_spin, 1, 1)
+        
+        # Gamma correction
+        enhancement_layout.addWidget(QLabel("Gamma:"), 2, 0)
+        self.gamma_spin = QDoubleSpinBox()
+        self.gamma_spin.setRange(0.1, 3.0)
+        self.gamma_spin.setValue(1.0)
+        self.gamma_spin.setSingleStep(0.1)
+        self.gamma_spin.valueChanged.connect(self.on_enhancement_changed)
+        enhancement_layout.addWidget(self.gamma_spin, 2, 1)
+        
+        # Contrast enhancement
+        enhancement_layout.addWidget(QLabel("Contrast:"), 3, 0)
+        self.contrast_spin = QDoubleSpinBox()
+        self.contrast_spin.setRange(0.5, 3.0)
+        self.contrast_spin.setValue(1.0)
+        self.contrast_spin.setSingleStep(0.1)
+        self.contrast_spin.valueChanged.connect(self.on_enhancement_changed)
+        enhancement_layout.addWidget(self.contrast_spin, 3, 1)
+        
+        # Brightness adjustment
+        enhancement_layout.addWidget(QLabel("Brightness:"), 4, 0)
+        self.brightness_spin = QSpinBox()
+        self.brightness_spin.setRange(-100, 100)
+        self.brightness_spin.setValue(0)
+        self.brightness_spin.valueChanged.connect(self.on_enhancement_changed)
+        enhancement_layout.addWidget(self.brightness_spin, 4, 1)
+        
+        # Enhancement presets
+        preset_layout = QHBoxLayout()
+        self.auto_levels_btn = QPushButton("Auto Levels")
+        self.auto_levels_btn.clicked.connect(self.on_auto_levels)
+        preset_layout.addWidget(self.auto_levels_btn)
+        
+        self.reset_enhancement_btn = QPushButton("Reset")
+        self.reset_enhancement_btn.clicked.connect(self.on_reset_enhancement)
+        preset_layout.addWidget(self.reset_enhancement_btn)
+        
+        enhancement_layout.addLayout(preset_layout, 5, 0, 1, 2)
+        
+        # Enhancement enable/disable
+        self.enhancement_enable = QCheckBox("Enable Enhancement")
+        self.enhancement_enable.setChecked(False)
+        self.enhancement_enable.toggled.connect(self.on_enhancement_changed)
+        enhancement_layout.addWidget(self.enhancement_enable, 6, 0, 1, 2)
+        
+        right_layout.addWidget(enhancement_group)
+        
         # Histogram
         histogram_group = QGroupBox("Histogram")
         histogram_layout = QVBoxLayout(histogram_group)
@@ -269,33 +334,108 @@ class CameraWidget(QWidget):
         
     def on_manual_focus(self, value):
         self.cameras.focus_manual(value, cameras=self.camera_id)
+    
+    def on_enhancement_changed(self):
+        # Trigger frame refresh with current enhancement settings
+        pass
+    
+    def on_auto_levels(self):
+        """Automatically calculate optimal levels based on current frame"""
+        if hasattr(self, 'current_frame') and self.current_frame is not None:
+            # Calculate histogram to find optimal levels
+            gray = cv2.cvtColor(self.current_frame, cv2.COLOR_RGB2GRAY)
+            hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
+            
+            # Find 1st and 99th percentiles for auto levels
+            total_pixels = gray.shape[0] * gray.shape[1]
+            cumsum = np.cumsum(hist)
+            
+            # Find 1% and 99% points
+            lower_idx = np.where(cumsum >= total_pixels * 0.01)[0]
+            upper_idx = np.where(cumsum >= total_pixels * 0.99)[0]
+            
+            if len(lower_idx) > 0 and len(upper_idx) > 0:
+                self.lower_limit_spin.setValue(int(lower_idx[0]))
+                self.upper_limit_spin.setValue(int(upper_idx[0]))
+                self.enhancement_enable.setChecked(True)
+    
+    def on_reset_enhancement(self):
+        """Reset all enhancement settings to default"""
+        self.lower_limit_spin.setValue(0)
+        self.upper_limit_spin.setValue(255)
+        self.gamma_spin.setValue(1.0)
+        self.contrast_spin.setValue(1.0)
+        self.brightness_spin.setValue(0)
+        self.enhancement_enable.setChecked(False)
+    
+    def apply_image_enhancement(self, image):
+        """Apply image enhancement based on current settings"""
+        if not self.enhancement_enable.isChecked():
+            return image
+        
+        enhanced = image.copy().astype(np.float32)
+        
+        # Apply levels adjustment (most important for black backgrounds)
+        lower = self.lower_limit_spin.value()
+        upper = self.upper_limit_spin.value()
+        
+        if upper > lower:
+            # Clip and stretch levels
+            enhanced = np.clip(enhanced, lower, upper)
+            enhanced = (enhanced - lower) / (upper - lower) * 255.0
+        
+        # Apply gamma correction
+        gamma = self.gamma_spin.value()
+        if gamma != 1.0:
+            enhanced = np.power(enhanced / 255.0, 1.0 / gamma) * 255.0
+        
+        # Apply contrast
+        contrast = self.contrast_spin.value()
+        if contrast != 1.0:
+            enhanced = ((enhanced - 127.5) * contrast) + 127.5
+        
+        # Apply brightness
+        brightness = self.brightness_spin.value()
+        if brightness != 0:
+            enhanced = enhanced + brightness
+        
+        # Clip final result
+        enhanced = np.clip(enhanced, 0, 255)
+        
+        return enhanced.astype(np.uint8)
         
     def update_frame(self, frame):
         if frame is not None:
             try:
+                # Store current frame for auto levels calculation
+                self.current_frame = frame
+                
                 # Rotate 90 degrees
                 frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 
-                # Draw ROI if enabled
+                # Convert BGR to RGB for correct color display
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
+                # Apply image enhancement
+                enhanced_frame = self.apply_image_enhancement(frame_rgb)
+                
+                # Draw ROI if enabled (after enhancement)
                 if self.roi_enable.isChecked():
                     x, y, w, h = self.roi_x.value(), self.roi_y.value(), self.roi_w.value(), self.roi_h.value()
                     # Scale ROI coordinates to current frame size
-                    frame_h, frame_w = frame.shape[:2]
+                    frame_h, frame_w = enhanced_frame.shape[:2]
                     scale_x = frame_w / 4608
                     scale_y = frame_h / 2592
                     roi_x = int(x * scale_x)
                     roi_y = int(y * scale_y)
                     roi_w_scaled = int(w * scale_x)
                     roi_h_scaled = int(h * scale_y)
-                    cv2.rectangle(frame, (roi_x, roi_y), (roi_x + roi_w_scaled, roi_y + roi_h_scaled), (0, 255, 0), 2)
-                
-                # Convert BGR to RGB for correct color display
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    cv2.rectangle(enhanced_frame, (roi_x, roi_y), (roi_x + roi_w_scaled, roi_y + roi_h_scaled), (0, 255, 0), 2)
                 
                 # Convert to QImage and display
-                height, width, channel = frame_rgb.shape
+                height, width, channel = enhanced_frame.shape
                 bytes_per_line = 3 * width
-                q_image = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
+                q_image = QImage(enhanced_frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
                 
                 # Create pixmap and scale to fit the fixed-size label
                 pixmap = QPixmap.fromImage(q_image)
@@ -303,8 +443,8 @@ class CameraWidget(QWidget):
                 scaled_pixmap = pixmap.scaled(self.camera_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 self.camera_label.setPixmap(scaled_pixmap)
                 
-                # Update histogram with RGB frame
-                self.histogram.update_histogram(frame_rgb)
+                # Update histogram with enhanced frame
+                self.histogram.update_histogram(enhanced_frame)
                 
             except Exception as e:
                 print(f"Error in update_frame: {e}")
