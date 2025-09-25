@@ -336,8 +336,20 @@ class CameraWidget(QWidget):
         self.cameras.focus_manual(value, cameras=self.camera_id)
     
     def on_enhancement_changed(self):
-        # Trigger frame refresh with current enhancement settings
-        pass
+        """Sync enhancement settings to camera when GUI controls change"""
+        settings = {
+            'enabled': self.enhancement_enable.isChecked(),
+            'lower_limit': self.lower_limit_spin.value(),
+            'upper_limit': self.upper_limit_spin.value(),
+            'gamma': self.gamma_spin.value(),
+            'contrast': self.contrast_spin.value(),
+            'brightness': self.brightness_spin.value(),
+            'remove_black_background': True,  # Always enabled for coral imaging
+            'black_threshold': 15,
+            'denoise': False,
+            'sharpen': False,
+        }
+        self.cameras.set_enhancement_settings(self.camera_id, **settings)
     
     def on_auto_levels(self):
         """Automatically calculate optimal levels based on current frame"""
@@ -486,7 +498,7 @@ class CaptureThread(QThread):
             filename = self.output_dir / f"{self.name}_{image:03}.jpg"
 
             time.sleep(self.delay)  # Small delay between captures
-            self.cameras.capture(filename)
+            self.cameras.capture_enhanced(filename, apply_enhancement=True)
             
             current_capture += 1
             progress_percent = int((current_capture / total_captures) * 100)
@@ -625,9 +637,12 @@ class MainWindow(QMainWindow):
     def update_camera_feeds(self):
         for cam_id, widget in self.camera_widgets.items():
             try:
-                # Capture frame from camera
-                frame = self.cameras.cameras[cam_id].capture_array("lores")  # Use low-res for preview
-                widget.update_frame(frame)
+                # Get enhanced preview frame
+                frame = self.cameras.capture_array_rgb(cam_id, apply_enhancement=True)
+                
+                if frame is not None:
+                    widget.update_frame(frame)
+                    
             except Exception as e:
                 print(f"Error updating camera {cam_id}: {e}")
                 
@@ -661,14 +676,30 @@ class MainWindow(QMainWindow):
         
         # Get ROI settings from camera widgets
         roi_settings = {}
-        for cam_id, widget in self.camera_widgets.items():
+        for widget in [self.camera1_widget, self.camera2_widget]:
             if widget.roi_enable.isChecked():
-                roi_settings[cam_id] = {
+                roi_settings[widget.camera_id] = {
                     'x': widget.roi_x.value(),
                     'y': widget.roi_y.value(),
                     'w': widget.roi_w.value(),
                     'h': widget.roi_h.value()
                 }
+                
+        # Sync enhancement settings to cameras before capture
+        for widget in [self.camera1_widget, self.camera2_widget]:
+            enhancement_settings = {
+                'enabled': widget.enhancement_enable.isChecked(),
+                'lower_limit': widget.lower_limit_spin.value(),
+                'upper_limit': widget.upper_limit_spin.value(),
+                'gamma': widget.gamma_spin.value(),
+                'contrast': widget.contrast_spin.value(),
+                'brightness': widget.brightness_spin.value(),
+                'remove_black_background': True,
+                'black_threshold': 15,
+                'denoise': False,
+                'sharpen': False,
+            }
+            self.cameras.set_enhancement_settings(widget.camera_id, **enhancement_settings)
         
         self.capture_thread = CaptureThread(
             self.cameras, self.motor, output_dir, self.output_name_edit.text(),
@@ -702,5 +733,5 @@ class MainWindow(QMainWindow):
         self.cameras.stop()
         self.light.off()
         super().closeEvent(event)
-        
-        
+
+
