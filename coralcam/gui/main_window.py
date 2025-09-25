@@ -346,17 +346,17 @@ class MainWindow(QMainWindow):
         browse_btn.clicked.connect(self.browse_output_dir)
         capture_layout.addWidget(browse_btn, 0, 2)
         
-        capture_layout.addWidget(QLabel("Name:"), 0, 0)
+        capture_layout.addWidget(QLabel("Name:"), 1, 0)
         self.output_name_edit = QLineEdit()
         self.output_name_edit.setText("capture")
-        capture_layout.addWidget(self.output_name_edit, 0, 1)
+        capture_layout.addWidget(self.output_name_edit, 1, 1)
 
-        capture_layout.addWidget(QLabel("Number of Images:"), 1, 0)
+        capture_layout.addWidget(QLabel("Number of Images:"), 2, 0)
         self.num_images_spin = QSpinBox()
         self.num_images_spin.setRange(1, 1000)
         self.num_images_spin.setValue(30)
-        capture_layout.addWidget(self.num_images_spin, 1, 1)
-               
+        capture_layout.addWidget(self.num_images_spin, 2, 1)
+
         self.start_capture_btn = QPushButton("Start Capture Sequence")
         self.start_capture_btn.clicked.connect(self.start_capture_sequence)
         capture_layout.addWidget(self.start_capture_btn, 3, 0, 1, 3)
