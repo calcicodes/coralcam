@@ -128,7 +128,7 @@ class CameraWidget(QWidget):
         controls_layout.addWidget(QLabel("Exposure (µs):"), 0, 0)
         self.exposure_spin = QSpinBox()
         self.exposure_spin.setRange(100, 100000)
-        self.exposure_spin.setValue(20000)
+        self.exposure_spin.setValue(3000)
         self.exposure_spin.valueChanged.connect(self.on_exposure_changed)
         controls_layout.addWidget(self.exposure_spin, 0, 1)
         
@@ -136,7 +136,7 @@ class CameraWidget(QWidget):
         controls_layout.addWidget(QLabel("Analogue Gain:"), 1, 0)
         self.gain_spin = QDoubleSpinBox()
         self.gain_spin.setRange(1.0, 16.0)
-        self.gain_spin.setValue(1.0)
+        self.gain_spin.setValue(1.5)
         self.gain_spin.setSingleStep(0.1)
         self.gain_spin.valueChanged.connect(self.on_gain_changed)
         controls_layout.addWidget(self.gain_spin, 1, 1)
