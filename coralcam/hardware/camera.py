@@ -13,19 +13,22 @@ config = {
         'format': 'BGR888',
         'size': (4608, 2592),
         'stride': 13824,
-        'framesize': 35831808
+        'framesize': 35831808,
+        'preserve_ar': True
         },
     'lores': {
         'format': 'YUV420',
         'size': (320, 240),
         'stride': 640,
-        'framesize': 230400
+        'framesize': 230400,
+        'preserve_ar': True
         },
     'raw': {
         'format': 'BGGR_PISP_COMP1',
         'size': (4608, 2592),
         'stride': 4608,
-        'framesize': 11943936
+        'framesize': 11943936,
+        'preserve_ar': True
         },
     'controls': {
         'NoiseReductionMode': controls.draft.NoiseReductionModeEnum.HighQuality,
