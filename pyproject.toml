@@ -39,9 +39,9 @@ dependencies = [
     "PyTmcStepper",
     "adafruit-blinka",
     "PyQt5",
-    "numpy>=1.21.0",
-    "matplotlib>=3.5.0",
-    "opencv-python>=4.6.0",
+    "numpy==1.22.4",
+    "matplotlib==3.5.0",
+    "opencv-python==4.6.0",
 ]
 
 [project.urls]
