@@ -676,7 +676,7 @@ class MainWindow(QMainWindow):
         
         # Get ROI settings from camera widgets
         roi_settings = {}
-        for widget in [self.camera1_widget, self.camera2_widget]:
+        for widget in self.camera_widgets.values():
             if widget.roi_enable.isChecked():
                 roi_settings[widget.camera_id] = {
                     'x': widget.roi_x.value(),
@@ -686,7 +686,7 @@ class MainWindow(QMainWindow):
                 }
                 
         # Sync enhancement settings to cameras before capture
-        for widget in [self.camera1_widget, self.camera2_widget]:
+        for widget in self.camera_widgets.values():
             enhancement_settings = {
                 'enabled': widget.enhancement_enable.isChecked(),
                 'lower_limit': widget.lower_limit_spin.value(),
