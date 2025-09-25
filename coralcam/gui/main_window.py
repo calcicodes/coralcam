@@ -204,7 +204,7 @@ class CameraWidget(QWidget):
     def update_frame(self, frame):
         if frame is not None:
             # Rotate 90 degrees
-            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             
             # Draw ROI if enabled
             if self.roi_enable.isChecked():
