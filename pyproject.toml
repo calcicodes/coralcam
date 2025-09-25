@@ -5,15 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "coralcam"
 version = "0.1.0"
-description = "A comprehensive camera control system for Raspberry Pi with coral monitoring capabilities"
+description = "A photogrammetry system for coral imaging."
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Oscar", email = ""},  # Add your email here
+    {name = "Oscar", email = "ob266@cam.ac.uk"},
 ]
 maintainers = [
-    {name = "Oscar", email = ""},  # Add your email here
+    {name = "Oscar", email = "ob266@cam.ac.uk"},
 ]
 keywords = ["camera", "raspberry-pi", "coral", "monitoring", "picamera2"]
 classifiers = [
