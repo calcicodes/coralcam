@@ -235,16 +235,20 @@ class CaptureThread(QThread):
     progress = pyqtSignal(int)
     finished_capture = pyqtSignal()
     
-    def __init__(self, cameras, motor, output_dir, name, num_images, roi_settings):
+    def __init__(self, cameras, motor, output_dir, name, num_images, roi_settings, delay=0.5):
         super().__init__()
         self.cameras = cameras
         self.motor = motor
-        self.output_dir = Path(output_dir)
+        self.output_dir = Path(output_dir) / name
         self.num_images = num_images
         self.roi_settings = roi_settings
         self.name = name
+        self.delay = delay
         
     def run(self):
+        if not (self.output_dir).exists():
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+
         total_captures = self.num_images
         current_capture = 0
         
@@ -253,15 +257,16 @@ class CaptureThread(QThread):
         for image in range(self.num_images):
             # Capture images
             filename = self.output_dir / f"{self.name}_{image:03}.jpg"
-            
+
+            time.sleep(self.delay)  # Small delay between captures
             self.cameras.capture(filename)
             
             current_capture += 1
             progress_percent = int((current_capture / total_captures) * 100)
             self.progress.emit(progress_percent)
             
-            time.sleep(0.5)  # Small delay between captures
-        
+            self.motor.rotation(rotation_step)
+            
         self.finished_capture.emit()
 
 class MainWindow(QMainWindow):
@@ -424,8 +429,6 @@ class MainWindow(QMainWindow):
             return
             
         output_dir = Path(self.output_dir_edit.text())
-        if not output_dir.exists():
-            output_dir.mkdir(parents=True, exist_ok=True)
             
         num_images = self.num_images_spin.value()
         
