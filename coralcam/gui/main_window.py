@@ -6,45 +6,114 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QGroupBox, QSlider, QLineEdit, 
                              QFileDialog, QProgressBar, QCheckBox, QTabWidget,
                              QApplication, QMessageBox, QFrame, QScrollArea)
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QMutex
-from PyQt5.QtGui import QImage, QPixmap, QFont, QPainter, QPen
+from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QMutex, QRect
+from PyQt5.QtGui import QImage, QPixmap, QFont, QPainter, QPen, QBrush, QColor
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
 import time
 
 from ..hardware.camera import CoralCameras
 from ..hardware.light import Light
 from ..hardware.motor_TMC2209 import Motor
 
-class HistogramWidget(FigureCanvas):
+class HistogramWidget(QWidget):
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(4, 3), dpi=80)
-        super().__init__(self.figure)
-        self.setParent(parent)
-        self.axes = self.figure.add_subplot(111)
-        self.axes.set_title('RGB Histogram')
-        self.axes.set_xlabel('Pixel Intensity')
-        self.axes.set_ylabel('Frequency')
-        self.figure.tight_layout()
+        super().__init__(parent)
+        self.setMinimumSize(300, 200)
+        self.setMaximumSize(400, 250)
+        
+        # Store histogram data
+        self.hist_data = [np.zeros(64), np.zeros(64), np.zeros(64)]  # R, G, B with fewer bins
+        self.colors = [QColor(255, 0, 0), QColor(0, 255, 0), QColor(0, 0, 255)]  # Red, Green, Blue
+        self.max_val = 1
         
     def update_histogram(self, image):
-        self.axes.clear()
         if image is not None:
-            # Calculate histograms for each channel
-            colors = ['red', 'green', 'blue']
-            for i, color in enumerate(colors):
-                hist = cv2.calcHist([image], [i], None, [256], [0, 256])
-                self.axes.plot(hist, color=color, alpha=0.7, linewidth=1)
+            try:
+                # Downsample image for faster calculation
+                small_image = cv2.resize(image, (80, 60))  # Very small for speed
+                
+                # Calculate histograms with fewer bins (64 instead of 256)
+                for i in range(3):
+                    hist = cv2.calcHist([small_image], [i], None, [64], [0, 256])
+                    self.hist_data[i] = hist.flatten()
+                
+                # Find max value for scaling
+                self.max_val = max(1, max([np.max(h) for h in self.hist_data]))
+                
+                # Trigger repaint
+                self.update()
+                
+            except Exception as e:
+                print(f"Error updating histogram: {e}")
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Set up drawing area
+        rect = self.rect()
+        margin = 30
+        plot_rect = QRect(margin, margin, rect.width() - 2*margin, rect.height() - 2*margin)
+        
+        # Draw background
+        painter.fillRect(rect, QColor(240, 240, 240))
+        painter.fillRect(plot_rect, QColor(255, 255, 255))
+        
+        # Draw border
+        painter.setPen(QPen(QColor(100, 100, 100), 1))
+        painter.drawRect(plot_rect)
+        
+        # Draw title
+        painter.setPen(QColor(0, 0, 0))
+        painter.setFont(QFont("Arial", 10, QFont.Bold))
+        title_rect = QRect(0, 5, rect.width(), 20)
+        painter.drawText(title_rect, Qt.AlignCenter, "RGB Histogram")
+        
+        if self.max_val > 1:
+            # Draw histograms
+            bin_width = plot_rect.width() / 64.0
             
-            self.axes.set_title('RGB Histogram')
-            self.axes.set_xlabel('Pixel Intensity')
-            self.axes.set_ylabel('Frequency')
-            self.axes.grid(True, alpha=0.3)
-            self.axes.set_xlim([0, 255])
-        self.draw()
+            for channel in range(3):
+                color = self.colors[channel]
+                color.setAlpha(150)  # Semi-transparent
+                painter.setPen(QPen(color, 1))
+                painter.setBrush(QBrush(color))
+                
+                # Draw bars
+                for i, val in enumerate(self.hist_data[channel]):
+                    if val > 0:
+                        bar_height = int((val / self.max_val) * plot_rect.height())
+                        bar_x = plot_rect.x() + int(i * bin_width)
+                        bar_y = plot_rect.y() + plot_rect.height() - bar_height
+                        bar_width = max(1, int(bin_width))
+                        
+                        # Only draw if height is significant
+                        if bar_height > 1:
+                            painter.drawRect(bar_x, bar_y, bar_width, bar_height)
+        
+        # Draw simple grid lines
+        painter.setPen(QPen(QColor(200, 200, 200), 1))
+        # Vertical lines
+        for i in range(1, 4):
+            x = plot_rect.x() + (i * plot_rect.width()) // 4
+            painter.drawLine(x, plot_rect.y(), x, plot_rect.y() + plot_rect.height())
+        # Horizontal lines  
+        for i in range(1, 4):
+            y = plot_rect.y() + (i * plot_rect.height()) // 4
+            painter.drawLine(plot_rect.x(), y, plot_rect.x() + plot_rect.width(), y)
+        
+        # Draw axis labels
+        painter.setPen(QColor(0, 0, 0))
+        painter.setFont(QFont("Arial", 8))
+        
+        # X-axis labels
+        for i in range(5):
+            x = plot_rect.x() + (i * plot_rect.width()) // 4
+            val = int((i * 256) // 4)
+            painter.drawText(x - 10, plot_rect.y() + plot_rect.height() + 15, f"{val}")
+        
+        painter.end()
 
 class CameraWidget(QWidget):
     def __init__(self, camera_id, cameras, parent=None):
