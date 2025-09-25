@@ -235,39 +235,32 @@ class CaptureThread(QThread):
     progress = pyqtSignal(int)
     finished_capture = pyqtSignal()
     
-    def __init__(self, cameras, motor, output_dir, num_images, num_rotations, roi_settings):
+    def __init__(self, cameras, motor, output_dir, name, num_images, roi_settings):
         super().__init__()
         self.cameras = cameras
         self.motor = motor
         self.output_dir = Path(output_dir)
         self.num_images = num_images
-        self.num_rotations = num_rotations
         self.roi_settings = roi_settings
+        self.name = name
         
     def run(self):
-        total_captures = self.num_images * self.num_rotations
+        total_captures = self.num_images
         current_capture = 0
         
-        rotation_angle = 360.0 / self.num_rotations if self.num_rotations > 0 else 0
+        rotation_step = 360.0 / self.num_images if self.num_images > 0 else 0
         
-        for rotation in range(self.num_rotations):
-            for image in range(self.num_images):
-                # Capture images
-                timestamp = int(time.time() * 1000)
-                filename = self.output_dir / f"capture_rot{rotation:03d}_img{image:03d}_{timestamp}.jpg"
-                
-                self.cameras.capture(filename)
-                
-                current_capture += 1
-                progress_percent = int((current_capture / total_captures) * 100)
-                self.progress.emit(progress_percent)
-                
-                time.sleep(0.5)  # Small delay between captures
+        for image in range(self.num_images):
+            # Capture images
+            filename = self.output_dir / f"{self.name}_{image:03}.jpg"
             
-            # Rotate if not the last rotation
-            if rotation < self.num_rotations - 1:
-                self.motor.rotation(rotation_angle)
-                time.sleep(1)  # Wait for rotation to complete
+            self.cameras.capture(filename)
+            
+            current_capture += 1
+            progress_percent = int((current_capture / total_captures) * 100)
+            self.progress.emit(progress_percent)
+            
+            time.sleep(0.5)  # Small delay between captures
         
         self.finished_capture.emit()
 
@@ -353,18 +346,17 @@ class MainWindow(QMainWindow):
         browse_btn.clicked.connect(self.browse_output_dir)
         capture_layout.addWidget(browse_btn, 0, 2)
         
+        capture_layout.addWidget(QLabel("Name:"), 0, 0)
+        self.output_name_edit = QLineEdit()
+        self.output_name_edit.setText("capture")
+        capture_layout.addWidget(self.output_name_edit, 0, 1)
+
         capture_layout.addWidget(QLabel("Number of Images:"), 1, 0)
         self.num_images_spin = QSpinBox()
         self.num_images_spin.setRange(1, 1000)
-        self.num_images_spin.setValue(10)
+        self.num_images_spin.setValue(30)
         capture_layout.addWidget(self.num_images_spin, 1, 1)
-        
-        capture_layout.addWidget(QLabel("Number of Rotations:"), 2, 0)
-        self.num_rotations_spin = QSpinBox()
-        self.num_rotations_spin.setRange(1, 360)
-        self.num_rotations_spin.setValue(36)  # 10 degree increments
-        capture_layout.addWidget(self.num_rotations_spin, 2, 1)
-        
+               
         self.start_capture_btn = QPushButton("Start Capture Sequence")
         self.start_capture_btn.clicked.connect(self.start_capture_sequence)
         capture_layout.addWidget(self.start_capture_btn, 3, 0, 1, 3)
@@ -436,7 +428,6 @@ class MainWindow(QMainWindow):
             output_dir.mkdir(parents=True, exist_ok=True)
             
         num_images = self.num_images_spin.value()
-        num_rotations = self.num_rotations_spin.value()
         
         # Get ROI settings from camera widgets
         roi_settings = {}
@@ -450,8 +441,8 @@ class MainWindow(QMainWindow):
                 }
         
         self.capture_thread = CaptureThread(
-            self.cameras, self.motor, output_dir, 
-            num_images, num_rotations, roi_settings
+            self.cameras, self.motor, output_dir, self.output_name_edit.text(),
+            num_images, roi_settings
         )
         self.capture_thread.progress.connect(self.update_progress)
         self.capture_thread.finished_capture.connect(self.capture_finished)
