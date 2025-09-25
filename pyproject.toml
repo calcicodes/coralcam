@@ -38,6 +38,7 @@ dependencies = [
     "libcamera",
     "rpi_hardware_pwm",
     "PyTmcStepper",
+    "adafruit-blinka",
     "PyQt5",
     "numpy>=1.21.0",
     "matplotlib>=3.5.0",
