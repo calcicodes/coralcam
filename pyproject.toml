@@ -35,7 +35,6 @@ dependencies = [
     "Rpi.GPIO",
     "pyserial",
     "picamera2",
-    "libcamera",
     "rpi_hardware_pwm",
     "PyTmcStepper",
     "adafruit-blinka",
