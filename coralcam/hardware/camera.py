@@ -100,7 +100,7 @@ class CoralCameras:
     
     def set_gain(self, analogue_gain=1.0, cameras=None):
         for cam in self._get_cameras(cameras):
-            self.cameras[cam].set_controls({"AnalogueGain": exposure_us})
+            self.cameras[cam].set_controls({"AnalogueGain": analogue_gain})
             self.AnalogueGain[cam] = analogue_gain
     
     def set_controls(self, control_input, cameras=None):
