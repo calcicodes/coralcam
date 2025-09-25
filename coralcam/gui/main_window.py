@@ -220,10 +220,13 @@ class CameraWidget(QWidget):
                     roi_h_scaled = int(h * scale_y)
                     cv2.rectangle(frame, (roi_x, roi_y), (roi_x + roi_w_scaled, roi_y + roi_h_scaled), (0, 255, 0), 2)
                 
+                # Convert BGR to RGB for correct color display
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
                 # Convert to QImage and display
-                height, width, channel = frame.shape
+                height, width, channel = frame_rgb.shape
                 bytes_per_line = 3 * width
-                q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
+                q_image = QImage(frame_rgb.data, width, height, bytes_per_line, QImage.Format_RGB888)
                 
                 # Create pixmap and scale to fit the fixed-size label
                 pixmap = QPixmap.fromImage(q_image)
@@ -231,8 +234,8 @@ class CameraWidget(QWidget):
                 scaled_pixmap = pixmap.scaled(self.camera_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 self.camera_label.setPixmap(scaled_pixmap)
                 
-                # Update histogram
-                self.histogram.update_histogram(frame)
+                # Update histogram with RGB frame
+                self.histogram.update_histogram(frame_rgb)
                 
             except Exception as e:
                 print(f"Error in update_frame: {e}")
