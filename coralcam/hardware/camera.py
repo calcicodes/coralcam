@@ -36,8 +36,8 @@ config = {
         'AfMode': controls.AfModeEnum.Auto,  # allow auto focus
         'AeEnable': False,  # no auto exposure
         'AwbEnable': False,  # no auto white balance
-        'ExposureTime': 20000,
-        'AnalogueGain': 1.0,
+        'ExposureTime': 3500,
+        'AnalogueGain': 1.5,
         },
     'sensor': {},
     'display': 'lores',
