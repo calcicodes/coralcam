@@ -71,12 +71,12 @@ class CameraWidget(QWidget):
         # Left side - Camera view and ROI controls
         left_layout = QVBoxLayout()
         
-        # Camera view
+        # Camera view with fixed size
         self.camera_label = ClickableLabel()
-        self.camera_label.setMinimumSize(320, 240)
-        self.camera_label.setMaximumSize(640, 480)
-        self.camera_label.setStyleSheet("border: 1px solid gray;")
+        self.camera_label.setFixedSize(480, 360)  # Fixed 4:3 aspect ratio
+        self.camera_label.setStyleSheet("border: 1px solid gray; background-color: black;")
         self.camera_label.setScaledContents(True)
+        self.camera_label.setAlignment(Qt.AlignCenter)
         self.camera_label.clicked.connect(self.on_roi_click)
         left_layout.addWidget(self.camera_label)
         
@@ -203,26 +203,49 @@ class CameraWidget(QWidget):
         
     def update_frame(self, frame):
         if frame is not None:
-            # Rotate 90 degrees
-            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            
-            # Draw ROI if enabled
-            if self.roi_enable.isChecked():
-                x, y, w, h = self.roi_x.value(), self.roi_y.value(), self.roi_w.value(), self.roi_h.value()
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            
-            # Convert to QImage and display
-            height, width, channel = frame.shape
-            bytes_per_line = 3 * width
-            q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
-            
-            # Scale to fit label
-            pixmap = QPixmap.fromImage(q_image)
-            scaled_pixmap = pixmap.scaled(self.camera_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.camera_label.setPixmap(scaled_pixmap)
-            
-            # Update histogram
-            self.histogram.update_histogram(frame)
+            try:
+                # Handle different frame formats
+                if len(frame.shape) == 2:
+                    # Convert grayscale to RGB
+                    frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+                elif len(frame.shape) == 3 and frame.shape[2] != 3:
+                    print(f"Unexpected number of channels: {frame.shape[2]}")
+                    return
+                
+                # Rotate 90 degrees
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                
+                # Draw ROI if enabled
+                if self.roi_enable.isChecked():
+                    x, y, w, h = self.roi_x.value(), self.roi_y.value(), self.roi_w.value(), self.roi_h.value()
+                    # Scale ROI coordinates to current frame size
+                    frame_h, frame_w = frame.shape[:2]
+                    scale_x = frame_w / 4608
+                    scale_y = frame_h / 2592
+                    roi_x = int(x * scale_x)
+                    roi_y = int(y * scale_y)
+                    roi_w_scaled = int(w * scale_x)
+                    roi_h_scaled = int(h * scale_y)
+                    cv2.rectangle(frame, (roi_x, roi_y), (roi_x + roi_w_scaled, roi_y + roi_h_scaled), (0, 255, 0), 2)
+                
+                # Convert to QImage and display
+                height, width, channel = frame.shape
+                bytes_per_line = 3 * width
+                q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
+                
+                # Create pixmap and scale to fit the fixed-size label
+                pixmap = QPixmap.fromImage(q_image)
+                # Use KeepAspectRatio to maintain image proportions within the fixed window
+                scaled_pixmap = pixmap.scaled(self.camera_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.camera_label.setPixmap(scaled_pixmap)
+                
+                # Update histogram
+                self.histogram.update_histogram(frame)
+                
+            except Exception as e:
+                print(f"Error in update_frame: {e}")
+                import traceback
+                traceback.print_exc()
 
 class ClickableLabel(QLabel):
     clicked = pyqtSignal(object)
