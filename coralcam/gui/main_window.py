@@ -142,7 +142,7 @@ class CameraWidget(QWidget):
         
         # Camera view with fixed size
         self.camera_label = ClickableLabel()
-        self.camera_label.setFixedSize(480, 360)  # Fixed 4:3 aspect ratio
+        self.camera_label.setFixedSize(360, 480)  # Fixed 4:3 aspect ratio
         self.camera_label.setStyleSheet("border: 1px solid gray; background-color: black;")
         self.camera_label.setScaledContents(True)
         self.camera_label.setAlignment(Qt.AlignCenter)
