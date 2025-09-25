@@ -41,7 +41,7 @@ dependencies = [
     "PyQt5",
     "numpy==1.22.4",
     "matplotlib==3.5.0",
-    "opencv-python==4.6.0",
+    "opencv-python==4.6.0.66",
 ]
 
 [project.urls]
