@@ -35,8 +35,13 @@ dependencies = [
     "Rpi.GPIO",
     "pyserial",
     "picamera2",
+    "libcamera",
     "rpi_hardware_pwm",
     "PyTmcStepper",
+    "PyQt5",
+    "numpy>=1.21.0",
+    "matplotlib>=3.5.0",
+    "opencv-python>=4.6.0",
 ]
 
 [project.urls]
@@ -46,7 +51,8 @@ Issues = "https://github.com/calcicodes/coralcam/issues"
 Documentation = "https://github.com/calcicodes/coralcam/wiki"
 
 [project.scripts]
-coralcam = "coralcam.cli:main"  # Add if you create a CLI module
+coralcam = "coralcam.gui.app:main"
+coralcam-gui = "coralcam.gui.app:main"
 
 [tool.setuptools]
 packages = ["coralcam"]
