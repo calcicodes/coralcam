@@ -235,13 +235,11 @@ class CoralCameras:
                     if image_array is not None:
                         enhanced_image = self.apply_image_enhancement(image_array, cam)
                         
-                        # Convert RGB to BGR for OpenCV saving (FIX: This was missing!)
-                        if len(enhanced_image.shape) == 3 and enhanced_image.shape[2] == 3:
-                            enhanced_bgr = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2BGR)
-                        else:
-                            enhanced_bgr = enhanced_image
-                            
+                        # Since picamera2 returns RGB888, but OpenCV expects BGR for saving
+                        # We need to convert RGB to BGR for cv2.imwrite
+                        enhanced_bgr = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2BGR)
                         cv2.imwrite(str(filename), enhanced_bgr)
+                        
                         print(f"Enhanced image saved: {filename}")
                     else:
                         print(f"Failed to capture array from camera {cam}")
