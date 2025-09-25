@@ -235,14 +235,18 @@ class CoralCameras:
                     if image_array is not None:
                         enhanced_image = self.apply_image_enhancement(image_array, cam)
                         
-                        # Convert RGB to BGR for OpenCV saving
-                        enhanced_bgr = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2BGR)
+                        # Convert RGB to BGR for OpenCV saving (FIX: This was missing!)
+                        if len(enhanced_image.shape) == 3 and enhanced_image.shape[2] == 3:
+                            enhanced_bgr = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2BGR)
+                        else:
+                            enhanced_bgr = enhanced_image
+                            
                         cv2.imwrite(str(filename), enhanced_bgr)
                         print(f"Enhanced image saved: {filename}")
                     else:
                         print(f"Failed to capture array from camera {cam}")
                 else:
-                    # Standard capture
+                    # Standard capture without enhancement
                     self.cameras[cam].capture_file(str(filename), 'main')
                     print(f"Standard image saved: {filename}")
                     
