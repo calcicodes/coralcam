@@ -10,14 +10,14 @@ config = {
     'buffer_count': 3,
     'queue': True,
     'main': {
-        'format': 'BGR888',
+        'format': 'RGB888',
         'size': (4608, 2592),
         'stride': 13824,
         'framesize': 35831808,
         'preserve_ar': True
         },
     'lores': {
-        'format': 'YUV420',
+        'format': 'RGB888',
         'size': (320, 240),
         'stride': 640,
         'framesize': 230400,
