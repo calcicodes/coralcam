@@ -23,7 +23,7 @@ class HistogramWidget(QWidget):
         self.setMaximumSize(400, 250)
         
         # Store histogram data
-        self.hist_data = [np.zeros(64), np.zeros(64), np.zeros(64)]  # R, G, B with fewer bins
+        self.hist_data = [np.zeros(128), np.zeros(128), np.zeros(128)]  # R, G, B with fewer bins
         self.colors = [QColor(255, 0, 0), QColor(0, 255, 0), QColor(0, 0, 255)]  # Red, Green, Blue
         self.max_val = 1
         
@@ -33,11 +33,13 @@ class HistogramWidget(QWidget):
                 # Downsample image for faster calculation
                 small_image = cv2.resize(image, (80, 60))  # Very small for speed
                 
-                # Calculate histograms with fewer bins (64 instead of 256)
+                # Calculate histograms with fewer bins (128 instead of 256)
                 for i in range(3):
-                    hist = cv2.calcHist([small_image], [i], None, [64], [0, 256])
-                    self.hist_data[i] = hist.flatten()
-                
+                    hist = cv2.calcHist([small_image], [i], None, [128], [0, 256])
+                    hist_flat = hist.flatten()
+                    hist_flat[0] = 0
+                    self.hist_data[i] = hist_flat
+
                 # Find max value for scaling
                 self.max_val = max(1, max([np.max(h) for h in self.hist_data]))
                 
@@ -72,7 +74,7 @@ class HistogramWidget(QWidget):
         
         if self.max_val > 1:
             # Draw histograms
-            bin_width = plot_rect.width() / 64.0
+            bin_width = plot_rect.width() / 128.0
             
             for channel in range(3):
                 color = self.colors[channel]
